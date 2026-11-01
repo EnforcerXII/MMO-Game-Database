@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import AppShell from "@/components/AppShell";
 
 const initialStats = {
   players: 0,
@@ -10,90 +12,90 @@ const initialStats = {
   achievements: 0,
 };
 
+const cards = [
+  { label: "Players", key: "players", href: "/players" },
+  { label: "Guilds", key: "guilds", href: "/guilds" },
+  { label: "Matches", key: "matches", href: "/matches" },
+  { label: "Items", key: "items", href: "/inventory" },
+  { label: "Achievements", key: "achievements", href: "/achievements" },
+];
+
 export default function Home() {
   const [stats, setStats] = useState(initialStats);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const response = await fetch("/api/dashboard");
-        const data = await response.json();
+  const fetchStats = useCallback(async () => {
+    setLoading(true);
+    setError("");
 
-        if (!response.ok || !data.success) {
-          throw new Error("Could not load dashboard statistics");
-        }
+    try {
+      const response = await fetch("/api/dashboard");
+      const data = await response.json();
 
-        setStats(data.stats);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+      if (!response.ok || !data.success) {
+        throw new Error("Could not load dashboard statistics");
       }
-    }
 
-    fetchStats();
+      setStats(data.stats);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const cards = [
-    { label: "Players", value: stats.players },
-    { label: "Guilds", value: stats.guilds },
-    { label: "Matches", value: stats.matches },
-    { label: "Items", value: stats.items },
-    { label: "Achievements", value: stats.achievements },
-  ];
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   return (
-    <main className="dashboard">
-      <aside className="sidebar">
-        <h2>ARENA OPS</h2>
-        <p className="sidebar-label">MANAGEMENT</p>
-        <div className="nav-item active">Overview</div>
-        <div className="nav-item">Players</div>
-        <div className="nav-item">Guilds</div>
-        <div className="nav-item">Matches</div>
-        <div className="nav-item">Inventory</div>
-        <div className="nav-item">Achievements</div>
-      </aside>
+    <AppShell>
+      <header className="topbar">
+        <div>
+          <p className="eyebrow">GAME MANAGEMENT SYSTEM</p>
+          <h1>Dashboard</h1>
+        </div>
 
-      <section className="main-content">
-        <header className="topbar">
-          <div>
-            <p className="eyebrow">GAME MANAGEMENT SYSTEM</p>
-            <h1>Dashboard</h1>
-          </div>
-          <span className="status">SYSTEM ONLINE</span>
-        </header>
+        <button className="secondary-button" onClick={fetchStats}>
+          ↻ Refresh
+        </button>
+      </header>
 
-        <section className="welcome">
-          <p>ARENA OVERVIEW</p>
-          <h2>Welcome to Arena Ops.</h2>
-          <span>
-            Manage your players, guilds, matches and game resources.
-          </span>
-        </section>
-
-        <section className="stats-section">
-          <h2>Database Overview</h2>
-
-          {loading ? (
-            <p>Loading statistics...</p>
-          ) : error ? (
-            <p className="error">{error}</p>
-          ) : (
-            <div className="stats-grid">
-              {cards.map((card) => (
-                <div className="stat-card" key={card.label}>
-                  <p>{card.label}</p>
-                  <h3>{card.value}</h3>
-                  <span>REGISTERED RECORDS</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+      <section className="welcome">
+        <p>ARENA OVERVIEW</p>
+        <h2>Welcome to Arena Ops.</h2>
+        <span>
+          Manage your players, guilds, matches and game resources.
+        </span>
       </section>
-    </main>
+
+      <section className="stats-section">
+        <div className="section-heading">
+          <h2>Database Overview</h2>
+          <span>LIVE DATABASE DATA</span>
+        </div>
+
+        {loading ? (
+          <p>Loading statistics...</p>
+        ) : error ? (
+          <p className="error-message">{error}</p>
+        ) : (
+          <div className="stats-grid">
+            {cards.map((card) => (
+              <Link
+                href={card.href}
+                className="stat-card"
+                key={card.key}
+              >
+                <p>{card.label}</p>
+                <h3>{stats[card.key]}</h3>
+                <span>VIEW RECORDS →</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+    </AppShell>
   );
 }
