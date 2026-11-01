@@ -626,3 +626,26 @@ td {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+.table-input {
+  width: 75px;
+  min-width: 65px;
+  min-height: 34px;
+  padding: 6px 8px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.table-actions {
+  gap: 8px;
+}
+
+.table-actions button {
+  padding: 8px 12px;
+  min-height: 34px;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
