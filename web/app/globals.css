@@ -669,3 +669,14 @@ button:disabled {
   text-align: center;
   font-size: 13px;
 }
+
+.inventory-player-select {
+  display: block;
+  max-width: 400px;
+  margin-bottom: 20px;
+}
+
+.inventory-player-select select {
+  width: 100%;
+  margin-top: 8px;
+}
