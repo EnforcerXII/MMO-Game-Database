@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -12,6 +13,12 @@ const emptyForm = {
 const emptyParticipant = {
   player_id: "",
   team_no: "1",
+};
+
+const emptyRound = {
+  round_no: "",
+  winning_team: "",
+  duration_sec: "",
 };
 
 export default function MatchesPage() {
@@ -30,6 +37,11 @@ export default function MatchesPage() {
   const [availablePlayers, setAvailablePlayers] = useState([]);
   const [participantForm, setParticipantForm] = useState(emptyParticipant);
   const [statsForms, setStatsForms] = useState({});
+
+  const [selectedRoundsMatch, setSelectedRoundsMatch] = useState(null);
+  const [rounds, setRounds] = useState([]);
+  const [roundForm, setRoundForm] = useState(emptyRound);
+  const [editingRound, setEditingRound] = useState(null);
 
   const fetchMatches = useCallback(async () => {
     setLoading(true);
@@ -136,6 +148,11 @@ export default function MatchesPage() {
 
       if (selectedMatch === match.match_id) {
         setSelectedMatch(null);
+      }
+
+      if (selectedRoundsMatch === match.match_id) {
+        setSelectedRoundsMatch(null);
+        setRounds([]);
       }
 
       setMessage(data.message);
@@ -300,13 +317,130 @@ export default function MatchesPage() {
     }
   }
 
+  // Match round management
+
+  async function fetchRounds(matchId) {
+    const response = await fetch(`/api/matches/${matchId}/rounds`);
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || "Failed to fetch rounds");
+    }
+
+    setRounds(data.rounds);
+  }
+
+  async function openRounds(match) {
+    setMessage("");
+
+    try {
+      await fetchRounds(match.match_id);
+      setSelectedRoundsMatch(match.match_id);
+      setRoundForm(emptyRound);
+      setEditingRound(null);
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
+  function handleRoundChange(event) {
+    setRoundForm((previous) => ({
+      ...previous,
+      [event.target.name]: event.target.value,
+    }));
+  }
+
+  function resetRoundForm() {
+    setRoundForm(emptyRound);
+    setEditingRound(null);
+  }
+
+  async function handleRoundSubmit(event) {
+    event.preventDefault();
+    setMessage("");
+
+    const payload = {
+      round_no: Number(roundForm.round_no),
+      winning_team:
+        roundForm.winning_team === ""
+          ? null
+          : Number(roundForm.winning_team),
+      duration_sec:
+        roundForm.duration_sec === ""
+          ? null
+          : Number(roundForm.duration_sec),
+    };
+
+    try {
+      const response = await fetch(
+        `/api/matches/${selectedRoundsMatch}/rounds`,
+        {
+          method: editingRound !== null ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Round operation failed");
+      }
+
+      setMessage(data.message);
+      resetRoundForm();
+      await fetchRounds(selectedRoundsMatch);
+      await fetchMatches();
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
+  function handleRoundEdit(round) {
+    setEditingRound(round.round_no);
+    setRoundForm({
+      round_no: String(round.round_no),
+      winning_team:
+        round.winning_team == null ? "" : String(round.winning_team),
+      duration_sec:
+        round.duration_sec == null ? "" : String(round.duration_sec),
+    });
+  }
+
+  async function handleRoundDelete(roundNo) {
+    if (!window.confirm(`Delete round ${roundNo}?`)) return;
+
+    setMessage("");
+
+    try {
+      const response = await fetch(
+        `/api/matches/${selectedRoundsMatch}/rounds?round_no=${roundNo}`,
+        { method: "DELETE" }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to delete round");
+      }
+
+      setMessage(data.message);
+      if (editingRound === roundNo) resetRoundForm();
+
+      await fetchRounds(selectedRoundsMatch);
+      await fetchMatches();
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
   return (
     <AppShell>
       <div className="page-header">
         <div>
           <p className="eyebrow">MANAGEMENT</p>
           <h1>Matches</h1>
-          <p>Manage matches, teams, and player statistics.</p>
+          <p>Manage matches, teams, rounds, and player statistics.</p>
         </div>
 
         <button className="secondary-button" onClick={fetchMatches}>
@@ -444,9 +578,7 @@ export default function MatchesPage() {
                     <td>#{match.match_id}</td>
                     <td>{match.mode_name}</td>
                     <td>{match.season_name}</td>
-                    <td>
-                      {new Date(match.started_at).toLocaleString()}
-                    </td>
+                    <td>{new Date(match.started_at).toLocaleString()}</td>
                     <td>{match.participant_count}</td>
                     <td>{match.round_count}</td>
                     <td>
@@ -467,6 +599,13 @@ export default function MatchesPage() {
                           onClick={() => openParticipants(match)}
                         >
                           Players
+                        </button>
+
+                        <button
+                          className="secondary-button"
+                          onClick={() => openRounds(match)}
+                        >
+                          Rounds
                         </button>
 
                         <button
@@ -634,6 +773,140 @@ export default function MatchesPage() {
                       </tr>
                     );
                   })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
+      {selectedRoundsMatch !== null && (
+        <section className="panel">
+          <div className="section-heading">
+            <div>
+              <h2>Match #{selectedRoundsMatch} Rounds</h2>
+              <p>Manage round results and durations.</p>
+            </div>
+
+            <button
+              className="secondary-button"
+              onClick={() => {
+                setSelectedRoundsMatch(null);
+                setRounds([]);
+                resetRoundForm();
+              }}
+            >
+              Close
+            </button>
+          </div>
+
+          <form className="player-form" onSubmit={handleRoundSubmit}>
+            <div className="form-grid">
+              <label>
+                Round Number
+                <input
+                  type="number"
+                  name="round_no"
+                  min="1"
+                  max="32767"
+                  value={roundForm.round_no}
+                  onChange={handleRoundChange}
+                  disabled={editingRound !== null}
+                  required
+                />
+              </label>
+
+              <label>
+                Winning Team
+                <input
+                  type="number"
+                  name="winning_team"
+                  min="1"
+                  max="32767"
+                  placeholder="Leave blank if undecided"
+                  value={roundForm.winning_team}
+                  onChange={handleRoundChange}
+                />
+              </label>
+
+              <label>
+                Duration (seconds)
+                <input
+                  type="number"
+                  name="duration_sec"
+                  min="0"
+                  max="2147483647"
+                  placeholder="Optional"
+                  value={roundForm.duration_sec}
+                  onChange={handleRoundChange}
+                />
+              </label>
+            </div>
+
+            <div className="form-actions">
+              <button type="submit" className="primary-button">
+                {editingRound !== null ? "Save Round" : "Add Round"}
+              </button>
+
+              {editingRound !== null && (
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={resetRoundForm}
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+
+          {rounds.length === 0 ? (
+            <p className="empty-state">No rounds recorded yet.</p>
+          ) : (
+            <div className="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Round</th>
+                    <th>Winning Team</th>
+                    <th>Duration</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {rounds.map((round) => (
+                    <tr key={round.round_no}>
+                      <td>Round {round.round_no}</td>
+                      <td>
+                        {round.winning_team == null
+                          ? "Undecided"
+                          : `Team ${round.winning_team}`}
+                      </td>
+                      <td>
+                        {round.duration_sec == null
+                          ? "Not recorded"
+                          : `${round.duration_sec}s`}
+                      </td>
+                      <td>
+                        <div className="table-actions">
+                          <button
+                            className="secondary-button"
+                            onClick={() => handleRoundEdit(round)}
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            className="danger-button"
+                            onClick={() => handleRoundDelete(round.round_no)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
