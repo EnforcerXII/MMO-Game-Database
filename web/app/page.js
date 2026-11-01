@@ -1,69 +1,99 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+
+import { useEffect, useState } from "react";
+
+const initialStats = {
+  players: 0,
+  guilds: 0,
+  matches: 0,
+  items: 0,
+  achievements: 0,
+};
 
 export default function Home() {
+  const [stats, setStats] = useState(initialStats);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const response = await fetch("/api/dashboard");
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error("Could not load dashboard statistics");
+        }
+
+        setStats(data.stats);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchStats();
+  }, []);
+
+  const cards = [
+    { label: "Players", value: stats.players },
+    { label: "Guilds", value: stats.guilds },
+    { label: "Matches", value: stats.matches },
+    { label: "Items", value: stats.items },
+    { label: "Achievements", value: stats.achievements },
+  ];
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the{" "}
-            <code className={styles.code}>page.js</code> file.
-          </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main className="dashboard">
+      <aside className="sidebar">
+        <h2>ARENA OPS</h2>
+        <p className="sidebar-label">MANAGEMENT</p>
+        <div className="nav-item active">Overview</div>
+        <div className="nav-item">Players</div>
+        <div className="nav-item">Guilds</div>
+        <div className="nav-item">Matches</div>
+        <div className="nav-item">Inventory</div>
+        <div className="nav-item">Achievements</div>
+      </aside>
+
+      <section className="main-content">
+        <header className="topbar">
+          <div>
+            <p className="eyebrow">GAME MANAGEMENT SYSTEM</p>
+            <h1>Dashboard</h1>
+          </div>
+          <span className="status">SYSTEM ONLINE</span>
+        </header>
+
+        <section className="welcome">
+          <p>ARENA OVERVIEW</p>
+          <h2>Welcome to Arena Ops.</h2>
+          <span>
+            Manage your players, guilds, matches and game resources.
+          </span>
+        </section>
+
+        <section className="stats-section">
+          <h2>Database Overview</h2>
+
+          {loading ? (
+            <p>Loading statistics...</p>
+          ) : error ? (
+            <p className="error">{error}</p>
+          ) : (
+            <div className="stats-grid">
+              {cards.map((card) => (
+                <div className="stat-card" key={card.label}>
+                  <p>{card.label}</p>
+                  <h3>{card.value}</h3>
+                  <span>REGISTERED RECORDS</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </section>
+    </main>
   );
 }
