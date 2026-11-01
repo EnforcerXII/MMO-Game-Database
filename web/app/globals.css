@@ -649,3 +649,23 @@ button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.inventory-player-select {
+  display: block;
+  max-width: 400px;
+  margin-bottom: 20px;
+}
+
+.inventory-player-select select {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.table-input {
+  width: 75px;
+  min-width: 65px;
+  min-height: 34px;
+  padding: 6px 8px;
+  text-align: center;
+  font-size: 13px;
+}
