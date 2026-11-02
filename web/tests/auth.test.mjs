@@ -39,7 +39,10 @@ try {
   }, body: "{}" })).status, 403);
   assert.equal((await Call("/api/players", "POST", { username: 123 }, Admin)).status, 400);
   const Player = await Login(`PLAYER_${Suffix}`);
-  assert.equal((await Call("/api/players", "GET", undefined, Admin)).status, 200);
+  const PlayersResult = await Call("/api/players", "GET", undefined, Admin);
+  assert.equal(PlayersResult.status, 200);
+  const PlayersData = await PlayersResult.json();
+  assert.equal(PlayersData.players.find((Row) => Number(Row.player_id) === Ids[0]).date_of_birth, "2000-01-01");
   for (const Method of ["GET", "POST", "PATCH", "DELETE"]) {
     const Path = ["PATCH", "DELETE"].includes(Method) ? `/api/players/${Ids[0]}` : "/api/players";
     assert.equal((await Call(Path, Method, undefined, Player)).status, 403);

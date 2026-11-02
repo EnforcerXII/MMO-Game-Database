@@ -12,6 +12,8 @@ const pool = mysql.createPool({
     rejectUnauthorized: true,
     ...(process.env.DB_SSL_CA ? { ca: readFileSync(process.env.DB_SSL_CA, "utf8") } : {}),
   } : undefined,
+  // SQL DATE values have no timezone; preserve birthdays without UTC conversion.
+  dateStrings: ["DATE"],
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
