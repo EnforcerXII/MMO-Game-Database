@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const Router = useRouter();
   const [Message, SetError] = useState("");
   const [Busy, SetBusy] = useState(false);
 
@@ -21,7 +19,8 @@ export default function LoginPage() {
       });
       const Data = await Result.json();
       if (!Result.ok) throw new Error(Data.message || "Sign-in failed");
-      Router.replace(Data.role === "ADMIN" ? "/" : "/account");
+      // Start a fresh document so cached pages cannot retain the previous account.
+      window.location.replace(Data.role === "ADMIN" ? "/" : "/account");
     } catch (Failure) {
       SetError(Failure.message);
     } finally {

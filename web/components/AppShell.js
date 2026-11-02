@@ -28,7 +28,8 @@ export default function AppShell({ children }) {
     try {
       const Result = await fetch("/api/auth/logout", { method: "POST" });
       if (!Result.ok) throw new Error("Sign-out failed. Please retry.");
-      Router.replace("/login");
+      // Discard cached authenticated pages when the session ends.
+      window.location.replace("/login");
     } catch (Error) { SetMessage(Error.message); }
   }
 
