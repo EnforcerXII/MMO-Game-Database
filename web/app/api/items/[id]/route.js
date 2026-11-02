@@ -1,9 +1,13 @@
+import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
 const validKinds = ["WEAPON", "COSMETIC"];
 const validRarities = ["COMMON", "RARE", "EPIC", "LEGENDARY"];
 
 export async function PATCH(request, { params }) {
+  const AccessError = await RequireAdmin();
+  if (AccessError) return AccessError;
+
   try {
     const { id } = await params;
     const itemId = Number(id);
@@ -93,6 +97,9 @@ export async function PATCH(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
+  const AccessError = await RequireAdmin();
+  if (AccessError) return AccessError;
+
   try {
     const { id } = await params;
     const itemId = Number(id);

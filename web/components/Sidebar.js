@@ -12,7 +12,7 @@ const links = [
   { label: "Achievements", href: "/achievements" },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ Role }) {
   const pathname = usePathname();
 
   return (
@@ -20,7 +20,7 @@ export default function Sidebar() {
       <h2>ARENA OPS</h2>
       <p className="sidebar-label">MANAGEMENT</p>
 
-      {links.map((link) => (
+      {(Role === "ADMIN" ? links : [{ label: "My account", href: "/account" }]).map((link) => (
         <Link
           key={link.href}
           href={link.href}

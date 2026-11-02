@@ -1,6 +1,10 @@
+import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
 export async function PATCH(request, { params }) {
+  const AccessError = await RequireAdmin();
+  if (AccessError) return AccessError;
+
   try {
     const { id } = await params;
     const matchId = Number(id);
@@ -73,6 +77,9 @@ export async function PATCH(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
+  const AccessError = await RequireAdmin();
+  if (AccessError) return AccessError;
+
   try {
     const { id } = await params;
     const matchId = Number(id);

@@ -1,9 +1,13 @@
+import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
 const validKinds = ["WEAPON", "COSMETIC"];
 const validRarities = ["COMMON", "RARE", "EPIC", "LEGENDARY"];
 
 export async function GET(request) {
+  const AccessError = await RequireAdmin();
+  if (AccessError) return AccessError;
+
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
@@ -26,6 +30,9 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  const AccessError = await RequireAdmin();
+  if (AccessError) return AccessError;
+
   try {
     const body = await request.json();
 

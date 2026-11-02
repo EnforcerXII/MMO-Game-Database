@@ -1,6 +1,10 @@
+import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
 export async function GET(request) {
+  const AccessError = await RequireAdmin();
+  if (AccessError) return AccessError;
+
   try {
     const { searchParams } = new URL(request.url);
     const playerId = Number(searchParams.get("player_id"));
@@ -58,6 +62,9 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  const AccessError = await RequireAdmin();
+  if (AccessError) return AccessError;
+
   try {
     const body = await request.json();
 
@@ -115,6 +122,9 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
+  const AccessError = await RequireAdmin();
+  if (AccessError) return AccessError;
+
   try {
     const body = await request.json();
 
@@ -170,6 +180,9 @@ export async function PATCH(request) {
 }
 
 export async function DELETE(request) {
+  const AccessError = await RequireAdmin();
+  if (AccessError) return AccessError;
+
   try {
     const { searchParams } = new URL(request.url);
 

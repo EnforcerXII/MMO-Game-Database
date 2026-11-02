@@ -1,6 +1,10 @@
+import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
 export async function GET() {
+  const AccessError = await RequireAdmin();
+  if (AccessError) return AccessError;
+
   try {
     const queries = [
       ["players", "SELECT COUNT(*) AS total FROM player"],

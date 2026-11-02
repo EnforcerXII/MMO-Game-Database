@@ -1,8 +1,12 @@
+import { RequireAdmin } from "@/lib/auth";
 
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
 export async function GET(request, { params }) {
+  const AccessError = await RequireAdmin();
+  if (AccessError) return AccessError;
+
   try {
     const { id } = await params;
 
@@ -28,6 +32,9 @@ export async function GET(request, { params }) {
 }
 
 export async function POST(request, { params }) {
+  const AccessError = await RequireAdmin();
+  if (AccessError) return AccessError;
+
   try {
     const { id } = await params;
     const { round_no, winning_team, duration_sec } =
@@ -97,6 +104,9 @@ export async function POST(request, { params }) {
 }
 
 export async function PATCH(request, { params }) {
+  const AccessError = await RequireAdmin();
+  if (AccessError) return AccessError;
+
   try {
     const { id } = await params;
     const { round_no, winning_team, duration_sec } =
@@ -167,6 +177,9 @@ export async function PATCH(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
+  const AccessError = await RequireAdmin();
+  if (AccessError) return AccessError;
+
   try {
     const { id } = await params;
     const roundNo = Number(

@@ -1,6 +1,10 @@
+import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
 export async function GET(request) {
+  const AccessError = await RequireAdmin();
+  if (AccessError) return AccessError;
+
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
@@ -72,6 +76,9 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  const AccessError = await RequireAdmin();
+  if (AccessError) return AccessError;
+
   try {
     const body = await request.json();
 
