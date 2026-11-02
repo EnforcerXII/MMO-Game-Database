@@ -3,7 +3,7 @@ import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
 export async function PATCH(request, { params }) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   const connection = await pool.getConnection();
@@ -132,7 +132,7 @@ export async function PATCH(request, { params }) {
 
     await connection.rollback();
     if (ValidationError) return ValidationError;
-    console.error("Guilds PATCH error:", error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
 
     if (error.code === "ER_DUP_ENTRY") {
       return Response.json(
@@ -151,7 +151,7 @@ export async function PATCH(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   const connection = await pool.getConnection();
@@ -204,7 +204,7 @@ export async function DELETE(request, { params }) {
 
     await connection.rollback();
     if (ValidationError) return ValidationError;
-    console.error("Guilds DELETE error:", error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
 
     return Response.json(
       {

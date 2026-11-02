@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
 export async function GET(request, { params }) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -27,7 +27,7 @@ export async function GET(request, { params }) {
     const ValidationError = DatabaseError(error);
     if (ValidationError) return ValidationError;
 
-    console.error(error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
     return NextResponse.json(
       { success: false, message: "Failed to fetch rounds" },
       { status: 500 }
@@ -36,7 +36,7 @@ export async function GET(request, { params }) {
 }
 
 export async function POST(request, { params }) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -102,7 +102,7 @@ export async function POST(request, { params }) {
       );
     }
 
-    console.error(error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
     return NextResponse.json(
       { success: false, message: "Failed to add round" },
       { status: 500 }
@@ -111,7 +111,7 @@ export async function POST(request, { params }) {
 }
 
 export async function PATCH(request, { params }) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -178,7 +178,7 @@ export async function PATCH(request, { params }) {
     const ValidationError = DatabaseError(error);
     if (ValidationError) return ValidationError;
 
-    console.error(error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
     return NextResponse.json(
       { success: false, message: "Failed to update round" },
       { status: 500 }
@@ -187,7 +187,7 @@ export async function PATCH(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -224,7 +224,7 @@ export async function DELETE(request, { params }) {
     const ValidationError = DatabaseError(error);
     if (ValidationError) return ValidationError;
 
-    console.error(error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
     return NextResponse.json(
       { success: false, message: "Failed to delete round" },
       { status: 500 }

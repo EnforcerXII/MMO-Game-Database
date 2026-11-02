@@ -6,7 +6,7 @@ const validKinds = ["WEAPON", "COSMETIC"];
 const validRarities = ["COMMON", "RARE", "EPIC", "LEGENDARY"];
 
 export async function PATCH(request, { params }) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -84,7 +84,7 @@ export async function PATCH(request, { params }) {
     const ValidationError = DatabaseError(error);
     if (ValidationError) return ValidationError;
 
-    console.error(error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
 
     if (error.code === "ER_DUP_ENTRY") {
       return Response.json(
@@ -101,7 +101,7 @@ export async function PATCH(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -145,7 +145,7 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    console.error(error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
 
     return Response.json(
       { success: false, message: "Failed to delete item" },

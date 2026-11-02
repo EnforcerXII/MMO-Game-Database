@@ -1,9 +1,12 @@
+import { ValidateRequest, AllowLogin } from "@/lib/security";
 import bcrypt from "bcryptjs";
 import pool from "@/lib/db";
 import { CreateSession } from "@/lib/auth";
 
 export async function POST(Request) {
   try {
+    const RequestError = await ValidateRequest(Request);
+    if (RequestError) return RequestError;
     const Body = await Request.json();
     if (typeof Body?.username !== "string" || typeof Body?.password !== "string" ||
         !Body.username.trim() || Body.username.length > 24 ||
@@ -16,6 +19,10 @@ export async function POST(Request) {
       [Body.username.trim()]
     );
     const Player = Players[0];
+    if (!(await AllowLogin(Player?.username || Body.username))) {
+      return Response.json({ success: false, message: "Too many sign-in attempts. Try again in 15 minutes." },
+        { status: 429, headers: { "Retry-After": "900" } });
+    }
     // Do comparable password work even for unknown usernames.
     const FallbackHash = "$2b$12$R9h/cIPz0gi.URNNX3kh2OPST9/PgBkqquzi.Ss7KIUgO2t0jWMUW";
     const Valid = await bcrypt.compare(Body.password, Player?.password_hash || FallbackHash);

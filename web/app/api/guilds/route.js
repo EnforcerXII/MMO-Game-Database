@@ -3,7 +3,7 @@ import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
 export async function GET(request) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -49,7 +49,7 @@ export async function GET(request) {
   } catch (error) {
     const ValidationError = DatabaseError(error);
 
-    console.error("Guilds GET error:", error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
 
     return Response.json(
       { success: false, message: "Failed to fetch guilds" },
@@ -59,7 +59,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   const connection = await pool.getConnection();
@@ -150,7 +150,7 @@ export async function POST(request) {
 
     await connection.rollback();
     if (ValidationError) return ValidationError;
-    console.error("Guilds POST error:", error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
 
     if (error.code === "ER_DUP_ENTRY") {
       return Response.json(

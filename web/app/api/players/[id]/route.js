@@ -4,7 +4,7 @@ import pool from "@/lib/db";
 import bcrypt from "bcryptjs";
 
 export async function PATCH(request, { params }) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -59,9 +59,9 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    if (password && password.length < 8) {
+    if (password && (password.length < 8 || Buffer.byteLength(password, "utf8") > 72)) {
       return Response.json(
-        { success: false, message: "Password must be at least 8 characters" },
+        { success: false, message: "Password must be at least 8 characters and at most 72 UTF-8 bytes" },
         { status: 400 }
       );
     }
@@ -106,7 +106,7 @@ export async function PATCH(request, { params }) {
     const ValidationError = DatabaseError(error);
     if (ValidationError) return ValidationError;
 
-    console.error("Players PATCH error:", error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
 
     if (error.code === "ER_DUP_ENTRY") {
       return Response.json(
@@ -123,7 +123,7 @@ export async function PATCH(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -157,7 +157,7 @@ export async function DELETE(request, { params }) {
     const ValidationError = DatabaseError(error);
     if (ValidationError) return ValidationError;
 
-    console.error("Players DELETE error:", error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
 
     if (error.code === "ER_ROW_IS_REFERENCED_2") {
       return Response.json(

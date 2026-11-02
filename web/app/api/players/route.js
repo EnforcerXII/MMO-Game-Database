@@ -4,7 +4,7 @@ import pool from "@/lib/db";
 import bcrypt from "bcryptjs";
 
 export async function GET(request) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -45,7 +45,7 @@ export async function GET(request) {
     const ValidationError = DatabaseError(error);
     if (ValidationError) return ValidationError;
 
-    console.error("Players GET error:", error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
 
     return Response.json(
       { success: false, message: "Failed to fetch players" },
@@ -55,7 +55,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -84,9 +84,9 @@ export async function POST(request) {
       );
     }
 
-    if (password.length < 8) {
+    if ((password.length < 8 || Buffer.byteLength(password, "utf8") > 72)) {
       return Response.json(
-        { success: false, message: "Password must be at least 8 characters" },
+        { success: false, message: "Password must be at least 8 characters and at most 72 UTF-8 bytes" },
         { status: 400 }
       );
     }
@@ -112,7 +112,7 @@ export async function POST(request) {
     const ValidationError = DatabaseError(error);
     if (ValidationError) return ValidationError;
 
-    console.error("Players POST error:", error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
 
     if (error.code === "ER_DUP_ENTRY") {
       return Response.json(

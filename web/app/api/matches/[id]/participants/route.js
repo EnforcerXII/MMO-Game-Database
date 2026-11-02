@@ -3,7 +3,7 @@ import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
 export async function GET(request, { params }) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -67,7 +67,7 @@ export async function GET(request, { params }) {
     const ValidationError = DatabaseError(error);
     if (ValidationError) return ValidationError;
 
-    console.error("Participants GET error:", error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
 
     return Response.json(
       { success: false, message: "Failed to fetch participants" },
@@ -77,7 +77,7 @@ export async function GET(request, { params }) {
 }
 
 export async function POST(request, { params }) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -142,7 +142,7 @@ export async function POST(request, { params }) {
     const ValidationError = DatabaseError(error);
     if (ValidationError) return ValidationError;
 
-    console.error("Participants POST error:", error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
 
     if (error.code === "ER_DUP_ENTRY") {
       return Response.json(
@@ -159,7 +159,7 @@ export async function POST(request, { params }) {
 }
 
 export async function PATCH(request, { params }) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -217,7 +217,7 @@ export async function PATCH(request, { params }) {
     const ValidationError = DatabaseError(error);
     if (ValidationError) return ValidationError;
 
-    console.error("Participants PATCH error:", error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
 
     return Response.json(
       { success: false, message: "Failed to update participant" },
@@ -227,7 +227,7 @@ export async function PATCH(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -267,7 +267,7 @@ export async function DELETE(request, { params }) {
     const ValidationError = DatabaseError(error);
     if (ValidationError) return ValidationError;
 
-    console.error("Participants DELETE error:", error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
 
     return Response.json(
       { success: false, message: "Failed to remove participant" },

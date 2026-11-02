@@ -3,7 +3,7 @@ import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
 export async function GET(request) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -30,7 +30,7 @@ export async function GET(request) {
     const ValidationError = DatabaseError(error);
     if (ValidationError) return ValidationError;
 
-    console.error(error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
 
     return Response.json(
       { success: false, message: "Failed to fetch achievements" },
@@ -40,7 +40,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -80,7 +80,7 @@ export async function POST(request) {
     const ValidationError = DatabaseError(error);
     if (ValidationError) return ValidationError;
 
-    console.error(error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
 
     if (error.code === "ER_DUP_ENTRY") {
       return Response.json(

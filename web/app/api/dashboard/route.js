@@ -2,8 +2,8 @@ import { DatabaseError } from "@/lib/validation";
 import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
-export async function GET() {
-  const AccessError = await RequireAdmin();
+export async function GET(request) {
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -27,7 +27,7 @@ export async function GET() {
     const ValidationError = DatabaseError(error);
     if (ValidationError) return ValidationError;
 
-    console.error("Dashboard API error:", error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
 
     return Response.json(
       { success: false, message: "Failed to fetch dashboard statistics" },

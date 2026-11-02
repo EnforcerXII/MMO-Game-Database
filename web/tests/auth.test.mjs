@@ -34,6 +34,10 @@ try {
     assert.equal((await Call(`/api/${Path}`)).status, 401, Path);
   }
   const Admin = await Login(`ADMIN_${Suffix}`);
+  assert.equal((await fetch(`${Base}/api/players`, { method: "POST", headers: {
+    Cookie: Admin, Origin: "https://untrusted.example", "Content-Type": "application/json",
+  }, body: "{}" })).status, 403);
+  assert.equal((await Call("/api/players", "POST", { username: 123 }, Admin)).status, 400);
   const Player = await Login(`PLAYER_${Suffix}`);
   assert.equal((await Call("/api/players", "GET", undefined, Admin)).status, 200);
   for (const Method of ["GET", "POST", "PATCH", "DELETE"]) {

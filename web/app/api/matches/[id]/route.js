@@ -3,7 +3,7 @@ import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
 export async function PATCH(request, { params }) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -71,7 +71,7 @@ export async function PATCH(request, { params }) {
     const ValidationError = DatabaseError(error);
     if (ValidationError) return ValidationError;
 
-    console.error("Matches PATCH error:", error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
 
     return Response.json(
       { success: false, message: "Failed to update match" },
@@ -81,7 +81,7 @@ export async function PATCH(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const AccessError = await RequireAdmin();
+  const AccessError = await RequireAdmin(request);
   if (AccessError) return AccessError;
 
   try {
@@ -115,7 +115,7 @@ export async function DELETE(request, { params }) {
     const ValidationError = DatabaseError(error);
     if (ValidationError) return ValidationError;
 
-    console.error("Matches DELETE error:", error);
+    console.error("Database request failed:", error.code || "UNKNOWN");
 
     return Response.json(
       {

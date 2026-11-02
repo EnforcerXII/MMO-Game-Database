@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import pool from "@/lib/db";
+import { ValidateRequest } from "@/lib/security";
 
 const SessionCookie = "arena_session";
 const SessionSeconds = 60 * 60 * 8;
@@ -59,7 +60,7 @@ export async function DeleteSession() {
   });
 }
 
-export async function RequireAdmin() {
+export async function RequireAdmin(Request) {
   try {
     const Player = await GetSession();
     if (!Player) {
@@ -68,7 +69,7 @@ export async function RequireAdmin() {
     if (Player.role !== "ADMIN") {
       return Response.json({ success: false, message: "Admin access required" }, { status: 403 });
     }
-    return null;
+    return await ValidateRequest(Request);
   } catch {
     return Response.json({ success: false, message: "Authentication unavailable" }, { status: 503 });
   }
