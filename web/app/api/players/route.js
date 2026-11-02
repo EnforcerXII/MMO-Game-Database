@@ -1,3 +1,4 @@
+import { DatabaseError } from "@/lib/validation";
 import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 import bcrypt from "bcryptjs";
@@ -41,6 +42,9 @@ export async function GET(request) {
       players,
     });
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     console.error("Players GET error:", error);
 
     return Response.json(
@@ -105,6 +109,9 @@ export async function POST(request) {
       { status: 201 }
     );
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     console.error("Players POST error:", error);
 
     if (error.code === "ER_DUP_ENTRY") {

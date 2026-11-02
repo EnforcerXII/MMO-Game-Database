@@ -1,3 +1,4 @@
+import { DatabaseError } from "@/lib/validation";
 import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
@@ -44,7 +45,7 @@ export async function PATCH(request, { params }) {
     await connection.beginTransaction();
 
     const [guilds] = await connection.execute(
-      "SELECT leader_id FROM guild WHERE guild_id = ?",
+      "SELECT leader_id FROM guild WHERE guild_id = ? FOR UPDATE",
       [guildId]
     );
 
@@ -90,6 +91,13 @@ export async function PATCH(request, { params }) {
     }
 
     await connection.execute(
+      `INSERT INTO guild_membership (guild_id, player_id, guild_role)
+       VALUES (?, ?, 'LEADER')
+       ON DUPLICATE KEY UPDATE guild_role = 'LEADER'`,
+      [guildId, leaderId]
+    );
+
+    await connection.execute(
       `UPDATE guild
        SET guild_name = ?, guild_tag = ?, leader_id = ?, treasury = ?
        WHERE guild_id = ?`,
@@ -111,12 +119,7 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    await connection.execute(
-      `INSERT INTO guild_membership (guild_id, player_id, guild_role)
-       VALUES (?, ?, 'LEADER')
-       ON DUPLICATE KEY UPDATE guild_role = 'LEADER'`,
-      [guildId, leaderId]
-    );
+
 
     await connection.commit();
 
@@ -125,7 +128,10 @@ export async function PATCH(request, { params }) {
       message: "Guild updated successfully",
     });
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+
     await connection.rollback();
+    if (ValidationError) return ValidationError;
     console.error("Guilds PATCH error:", error);
 
     if (error.code === "ER_DUP_ENTRY") {
@@ -178,7 +184,7 @@ export async function DELETE(request, { params }) {
     }
 
     await connection.execute(
-      "DELETE FROM guild_membership WHERE guild_id = ?",
+      "UPDATE guild SET leader_id = NULL WHERE guild_id = ?",
       [guildId]
     );
 
@@ -194,7 +200,10 @@ export async function DELETE(request, { params }) {
       message: "Guild deleted successfully",
     });
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+
     await connection.rollback();
+    if (ValidationError) return ValidationError;
     console.error("Guilds DELETE error:", error);
 
     return Response.json(

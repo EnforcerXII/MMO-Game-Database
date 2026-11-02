@@ -1,3 +1,4 @@
+import { DatabaseError } from "@/lib/validation";
 import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
@@ -14,6 +15,9 @@ export async function GET() {
       result: rows[0],
     });
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     console.error("Database connection failed:", error);
 
     return Response.json(

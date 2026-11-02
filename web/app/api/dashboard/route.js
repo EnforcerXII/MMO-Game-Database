@@ -1,3 +1,4 @@
+import { DatabaseError } from "@/lib/validation";
 import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
@@ -23,6 +24,9 @@ export async function GET() {
 
     return Response.json({ success: true, stats });
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     console.error("Dashboard API error:", error);
 
     return Response.json(

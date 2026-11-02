@@ -1,3 +1,4 @@
+import { DatabaseError } from "@/lib/validation";
 import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
@@ -67,6 +68,9 @@ export async function PATCH(request, { params }) {
       message: "Match updated successfully",
     });
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     console.error("Matches PATCH error:", error);
 
     return Response.json(
@@ -108,6 +112,9 @@ export async function DELETE(request, { params }) {
       message: "Match deleted successfully",
     });
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     console.error("Matches DELETE error:", error);
 
     return Response.json(

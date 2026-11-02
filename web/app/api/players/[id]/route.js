@@ -1,3 +1,4 @@
+import { DatabaseError } from "@/lib/validation";
 import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 import bcrypt from "bcryptjs";
@@ -102,6 +103,9 @@ export async function PATCH(request, { params }) {
       message: "Player updated successfully",
     });
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     console.error("Players PATCH error:", error);
 
     if (error.code === "ER_DUP_ENTRY") {
@@ -150,6 +154,9 @@ export async function DELETE(request, { params }) {
       message: "Player deleted successfully",
     });
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     console.error("Players DELETE error:", error);
 
     if (error.code === "ER_ROW_IS_REFERENCED_2") {

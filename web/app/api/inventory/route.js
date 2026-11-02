@@ -1,3 +1,4 @@
+import { DatabaseError } from "@/lib/validation";
 import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
@@ -52,6 +53,9 @@ export async function GET(request) {
       inventory,
     });
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     console.error(error);
 
     return Response.json(
@@ -112,6 +116,9 @@ export async function POST(request) {
       { status: 201 }
     );
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     console.error(error);
 
     return Response.json(
@@ -170,6 +177,9 @@ export async function PATCH(request) {
       message: "Inventory quantity updated",
     });
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     console.error(error);
 
     return Response.json(
@@ -217,6 +227,9 @@ export async function DELETE(request) {
       message: "Item removed from inventory",
     });
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     console.error(error);
 
     return Response.json(

@@ -161,9 +161,8 @@ CREATE TABLE player_achievement (
 
 -- Closing circular FK for Guild Leader.
 -- MySQL has no DEFERRABLE constraints, so this is checked immediately.
--- To load a guild and its leader's membership, either set
--- FOREIGN_KEY_CHECKS = 0 around the inserts (as the DML file does)
--- or make guild.leader_id nullable and fill it in after the membership row exists.
+-- The integrity migration below makes leader_id nullable so a transaction can
+-- insert the guild, insert membership, then assign its leader with FK checks on.
 ALTER TABLE guild
     ADD CONSTRAINT fk_guild_leader FOREIGN KEY (guild_id, leader_id)
     REFERENCES guild_membership(guild_id, player_id);
@@ -203,3 +202,52 @@ CREATE TABLE app_session (
     CONSTRAINT fk_session_player FOREIGN KEY (player_id) REFERENCES player(player_id) ON DELETE CASCADE,
     INDEX ix_session_expiry (expires_at)
 ) ENGINE=InnoDB;
+
+ALTER TABLE player
+    ADD CONSTRAINT ck_player_username CHECK (CHAR_LENGTH(TRIM(username)) BETWEEN 1 AND 24),
+    ADD CONSTRAINT ck_player_email CHECK (email REGEXP '^[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+$'),
+    ADD CONSTRAINT ck_player_role CHECK (role IN ('ADMIN', 'PLAYER')),
+    ADD CONSTRAINT ck_player_status CHECK (status IN ('ACTIVE', 'BANNED'));
+ALTER TABLE guild
+    MODIFY leader_id BIGINT NULL,
+    ADD CONSTRAINT ck_guild_name CHECK (CHAR_LENGTH(TRIM(guild_name)) > 0),
+    ADD CONSTRAINT ck_guild_tag CHECK (CHAR_LENGTH(TRIM(guild_tag)) = 4),
+    ADD CONSTRAINT ck_guild_treasury CHECK (treasury >= 0);
+ALTER TABLE item
+    ADD CONSTRAINT ck_item_name CHECK (CHAR_LENGTH(TRIM(item_name)) > 0),
+    ADD CONSTRAINT ck_item_price CHECK (base_price >= 0),
+    ADD CONSTRAINT ck_item_rarity CHECK (rarity IN ('COMMON', 'RARE', 'EPIC', 'LEGENDARY')),
+    ADD CONSTRAINT ck_item_subtype CHECK (
+        (item_kind = 'WEAPON' AND damage IS NOT NULL AND damage >= 0 AND slot_type IS NULL)
+        OR (item_kind = 'COSMETIC' AND damage IS NULL AND slot_type IS NOT NULL AND CHAR_LENGTH(TRIM(slot_type)) > 0)
+    );
+ALTER TABLE inventory ADD CONSTRAINT ck_inventory_quantity CHECK (quantity > 0);
+ALTER TABLE game_mode ADD CONSTRAINT ck_mode_size CHECK (team_size > 0);
+ALTER TABLE season ADD CONSTRAINT ck_season_dates CHECK (end_date >= start_date);
+ALTER TABLE game_match
+    ADD CONSTRAINT ck_match_status CHECK (status IN ('LIVE', 'COMPLETED', 'ABANDONED')),
+    ADD CONSTRAINT ck_match_times CHECK (
+      (status = 'LIVE' AND ended_at IS NULL) OR
+      (status IN ('COMPLETED', 'ABANDONED') AND ended_at IS NOT NULL AND ended_at >= started_at)
+    );
+ALTER TABLE match_participation
+    ADD CONSTRAINT ck_participation_stats CHECK (team_no > 0 AND kills >= 0 AND deaths >= 0 AND damage_dealt >= 0);
+ALTER TABLE match_round
+    ADD CONSTRAINT ck_round_values CHECK (round_no > 0 AND (winning_team IS NULL OR winning_team > 0) AND (duration_sec IS NULL OR duration_sec >= 0));
+ALTER TABLE achievement
+    ADD CONSTRAINT ck_achievement_values CHECK (CHAR_LENGTH(TRIM(achievement_code)) > 0 AND CHAR_LENGTH(TRIM(title)) > 0 AND points >= 0);
+
+DELIMITER //
+CREATE TRIGGER trg_player_validate_insert BEFORE INSERT ON player FOR EACH ROW
+BEGIN
+    IF NEW.date_of_birth > CURRENT_DATE OR NEW.date_of_birth < '1900-01-01' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Invalid date of birth';
+    END IF;
+END //
+CREATE TRIGGER trg_player_validate_update BEFORE UPDATE ON player FOR EACH ROW
+BEGIN
+    IF NEW.date_of_birth > CURRENT_DATE OR NEW.date_of_birth < '1900-01-01' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Invalid date of birth';
+    END IF;
+END //
+DELIMITER ;

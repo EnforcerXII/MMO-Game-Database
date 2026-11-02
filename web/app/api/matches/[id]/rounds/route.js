@@ -1,3 +1,4 @@
+import { DatabaseError } from "@/lib/validation";
 import { RequireAdmin } from "@/lib/auth";
 
 import { NextResponse } from "next/server";
@@ -23,6 +24,9 @@ export async function GET(request, { params }) {
       rounds,
     });
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     console.error(error);
     return NextResponse.json(
       { success: false, message: "Failed to fetch rounds" },
@@ -81,6 +85,9 @@ export async function POST(request, { params }) {
       { status: 201 }
     );
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     if (error.code === "ER_DUP_ENTRY") {
       return NextResponse.json(
         { success: false, message: "This round already exists" },
@@ -168,6 +175,9 @@ export async function PATCH(request, { params }) {
       message: "Round updated successfully",
     });
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     console.error(error);
     return NextResponse.json(
       { success: false, message: "Failed to update round" },
@@ -211,6 +221,9 @@ export async function DELETE(request, { params }) {
       message: "Round deleted successfully",
     });
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     console.error(error);
     return NextResponse.json(
       { success: false, message: "Failed to delete round" },

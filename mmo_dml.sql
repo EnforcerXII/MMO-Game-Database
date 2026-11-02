@@ -1,7 +1,7 @@
 USE arena;
 
--- Disable Foreign Key checks so insertion order doesn't fail on circular references
-SET FOREIGN_KEY_CHECKS = 0;
+-- Keep foreign keys enabled. Resolve the guild/member cycle in a transaction.
+START TRANSACTION;
 
 -- 1. GAME MODE
 INSERT INTO game_mode (mode_code, mode_name, team_size) VALUES
@@ -41,14 +41,17 @@ INSERT INTO inventory (player_id, item_id, quantity) VALUES
 
 -- 7. GUILD
 INSERT INTO guild (guild_name, guild_tag, leader_id, treasury) VALUES
-('Alpha Vanguard', 'AVNG', 1, 5000.00),
-('Phoenix Order', 'PHNX', 2, 1200.50);
+('Alpha Vanguard', 'AVNG', NULL, 5000.00),
+('Phoenix Order', 'PHNX', NULL, 1200.50);
 
 -- 8. GUILD MEMBERSHIP
 INSERT INTO guild_membership (guild_id, player_id, guild_role) VALUES
 (1, 1, 'LEADER'),
 (1, 3, 'OFFICER'),
 (2, 2, 'LEADER');
+
+UPDATE guild SET leader_id = 1 WHERE guild_id = 1;
+UPDATE guild SET leader_id = 2 WHERE guild_id = 2;
 
 -- 9. GAME MATCH
 INSERT INTO game_match (mode_code, season_id, started_at, ended_at, status) VALUES
@@ -79,8 +82,7 @@ INSERT INTO player_achievement (player_id, achievement_code, match_id) VALUES
 (1, 'VICTORY_ROYALE', 1),
 (2, 'FIRST_BLOOD', 1);
 
--- Re-enable Foreign Key checks
-SET FOREIGN_KEY_CHECKS = 1;
+COMMIT;
 
 DELIMITER //
 
@@ -133,27 +135,34 @@ CREATE PROCEDURE transfer_item(
     IN p_qty INT
 )
 BEGIN
-    DECLARE current_qty INT DEFAULT 0;
+    DECLARE current_qty INT DEFAULT NULL;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
 
-    SELECT quantity INTO current_qty
-    FROM inventory
-    WHERE player_id = p_sender_id AND item_id = p_item_id;
-
-    IF current_qty >= p_qty THEN
-        UPDATE inventory
-        SET quantity = quantity - p_qty
-        WHERE player_id = p_sender_id AND item_id = p_item_id;
-
-        DELETE FROM inventory
-        WHERE player_id = p_sender_id AND item_id = p_item_id AND quantity = 0;
-
-        INSERT INTO inventory (player_id, item_id, quantity)
-        VALUES (p_receiver_id, p_item_id, p_qty)
-        ON DUPLICATE KEY UPDATE quantity = quantity + p_qty;
-    ELSE
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Transfer failed: Sender does not have enough quantity.';
+    START TRANSACTION;
+    IF p_qty IS NULL OR p_qty <= 0 OR p_sender_id = p_receiver_id THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Invalid transfer quantity or recipient';
     END IF;
+
+    SELECT quantity INTO current_qty FROM inventory
+    WHERE player_id = p_sender_id AND item_id = p_item_id FOR UPDATE;
+    IF current_qty IS NULL OR current_qty < p_qty THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Insufficient inventory';
+    END IF;
+
+    IF current_qty = p_qty THEN
+        DELETE FROM inventory WHERE player_id = p_sender_id AND item_id = p_item_id;
+    ELSE
+        UPDATE inventory SET quantity = quantity - p_qty
+        WHERE player_id = p_sender_id AND item_id = p_item_id;
+    END IF;
+    INSERT INTO inventory (player_id, item_id, quantity)
+    VALUES (p_receiver_id, p_item_id, p_qty)
+    ON DUPLICATE KEY UPDATE quantity = quantity + p_qty;
+    COMMIT;
 END //
 
 DELIMITER ;

@@ -1,3 +1,4 @@
+import { DatabaseError } from "@/lib/validation";
 import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
@@ -51,6 +52,9 @@ export async function PATCH(request, { params }) {
       message: "Achievement updated successfully",
     });
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     console.error(error);
 
     if (error.code === "ER_DUP_ENTRY") {
@@ -91,6 +95,9 @@ export async function DELETE(request, { params }) {
       message: "Achievement deleted successfully",
     });
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     if (error.code === "ER_ROW_IS_REFERENCED_2") {
       return Response.json(
         {

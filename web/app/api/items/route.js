@@ -1,3 +1,4 @@
+import { DatabaseError } from "@/lib/validation";
 import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
@@ -21,6 +22,9 @@ export async function GET(request) {
 
     return Response.json({ success: true, items });
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     console.error(error);
     return Response.json(
       { success: false, message: "Failed to fetch items" },
@@ -90,6 +94,9 @@ export async function POST(request) {
       { status: 201 }
     );
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+    if (ValidationError) return ValidationError;
+
     console.error(error);
 
     if (error.code === "ER_DUP_ENTRY") {

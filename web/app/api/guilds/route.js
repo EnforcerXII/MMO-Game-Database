@@ -1,3 +1,4 @@
+import { DatabaseError } from "@/lib/validation";
 import { RequireAdmin } from "@/lib/auth";
 import pool from "@/lib/db";
 
@@ -46,6 +47,8 @@ export async function GET(request) {
       players,
     });
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+
     console.error("Guilds GET error:", error);
 
     return Response.json(
@@ -117,11 +120,10 @@ export async function POST(request) {
 
     const [result] = await connection.execute(
       `INSERT INTO guild (guild_name, guild_tag, leader_id, treasury)
-       VALUES (?, ?, ?, ?)`,
+       VALUES (?, ?, NULL, ?)`,
       [
         guild_name.trim(),
         guild_tag.trim().toUpperCase(),
-        leaderId,
         treasuryValue,
       ]
     );
@@ -131,6 +133,8 @@ export async function POST(request) {
        VALUES (?, ?, 'LEADER')`,
       [result.insertId, leaderId]
     );
+
+    await connection.execute("UPDATE guild SET leader_id = ? WHERE guild_id = ?", [leaderId, result.insertId]);
 
     await connection.commit();
 
@@ -142,7 +146,10 @@ export async function POST(request) {
       { status: 201 }
     );
   } catch (error) {
+    const ValidationError = DatabaseError(error);
+
     await connection.rollback();
+    if (ValidationError) return ValidationError;
     console.error("Guilds POST error:", error);
 
     if (error.code === "ER_DUP_ENTRY") {
