@@ -1,0 +1,35 @@
+digraph Arena {
+graph [rankdir=LR, bgcolor="#ffffff", pad="0.3", nodesep="0.4", ranksep="0.8"];
+node [shape=record, fontname="Arial", fontsize=11, style=filled, fillcolor="#eef3fa"];
+edge [fontname="Arial", fontsize=9, color="#52647b"];
+player [label="{player|player_id\lusername\lemail\lpassword_hash\ldate_of_birth\lrole\lstatus\lcreated_at\l}"];
+friendship [label="{friendship|player_low\lplayer_high\lstatus\lsince\l}"];
+friendship -> player [label="player_low"];
+friendship -> player [label="player_high"];
+guild [label="{guild|guild_id\lguild_name\lguild_tag\lleader_id\ltreasury\l}"];
+guild_membership [label="{guild_membership|guild_id\lplayer_id\lguild_role\ljoined_on\l}"];
+guild_membership -> guild [label="guild_id"];
+guild_membership -> player [label="player_id"];
+item [label="{item|item_id\litem_kind\litem_name\lrarity\lbase_price\ldamage\lslot_type\l}"];
+inventory [label="{inventory|player_id\litem_id\lquantity\lacquired_at\l}"];
+inventory -> player [label="player_id"];
+inventory -> item [label="item_id"];
+game_mode [label="{game_mode|mode_code\lmode_name\lteam_size\l}"];
+season [label="{season|season_id\lseason_name\lstart_date\lend_date\l}"];
+game_match [label="{game_match|match_id\lmode_code\lseason_id\lstarted_at\lended_at\lstatus\l}"];
+game_match -> game_mode [label="mode_code"];
+game_match -> season [label="season_id"];
+match_participation [label="{match_participation|match_id\lplayer_id\lteam_no\lkills\ldeaths\ldamage_dealt\l}"];
+match_participation -> game_match [label="match_id"];
+match_participation -> player [label="player_id"];
+match_round [label="{match_round|match_id\lround_no\lwinning_team\lduration_sec\l}"];
+match_round -> game_match [label="match_id"];
+achievement [label="{achievement|achievement_code\ltitle\lpoints\l}"];
+player_achievement [label="{player_achievement|player_id\lachievement_code\lmatch_id\lunlocked_at\l}"];
+player_achievement -> achievement [label="achievement_code"];
+player_achievement -> match_participation [label="match_id, player_id"];
+app_session [label="{app_session|token_hash\lplayer_id\lpassword_version\lexpires_at\l}"];
+app_session -> player [label="player_id"];
+login_attempt [label="{login_attempt|username_hash\lattempts\lwindow_start\l}"];
+guild -> guild_membership [label="guild_id, leader_id (nullable)"];
+}
