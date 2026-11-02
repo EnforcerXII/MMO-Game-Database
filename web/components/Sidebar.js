@@ -10,6 +10,10 @@ const links = [
   { label: "Matches", href: "/matches" },
   { label: "Inventory", href: "/inventory" },
   { label: "Achievements", href: "/achievements" },
+  {
+    label: "Friendships",
+    href: "/friendships",
+  }
 ];
 
 export default function Sidebar({ Role }) {

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -19,12 +20,18 @@ export default function GuildsPage() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
 
+  // Guild member management state
+  const [selectedGuild, setSelectedGuild] = useState(null);
+  const [members, setMembers] = useState([]);
+  const [availablePlayers, setAvailablePlayers] = useState([]);
+  const [selectedPlayer, setSelectedPlayer] = useState("");
+  const [membersLoading, setMembersLoading] = useState(false);
+
   const fetchGuilds = useCallback(async () => {
     setLoading(true);
 
     try {
       const params = new URLSearchParams();
-
       if (search) params.set("search", search);
 
       const response = await fetch(`/api/guilds?${params.toString()}`);
@@ -46,6 +53,116 @@ export default function GuildsPage() {
   useEffect(() => {
     fetchGuilds();
   }, [fetchGuilds]);
+
+  async function fetchMembers(guild) {
+    setSelectedGuild(guild);
+    setMembersLoading(true);
+    setMessage("");
+
+    try {
+      const response = await fetch(
+        `/api/guilds/${guild.guild_id}/members`
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch members");
+      }
+
+      setMembers(data.members);
+      setAvailablePlayers(data.availablePlayers);
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setMembersLoading(false);
+    }
+  }
+
+  async function addMember(event) {
+    event.preventDefault();
+
+    try {
+      const response = await fetch(
+        `/api/guilds/${selectedGuild.guild_id}/members`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ player_id: selectedPlayer }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to add member");
+      }
+
+      setMessage(data.message);
+      setSelectedPlayer("");
+      await fetchMembers(selectedGuild);
+      await fetchGuilds();
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
+  async function updateMemberRole(playerId, guildRole) {
+    try {
+      const response = await fetch(
+        `/api/guilds/${selectedGuild.guild_id}/members`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            player_id: playerId,
+            guild_role: guildRole,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update role");
+      }
+
+      setMessage(data.message);
+      await fetchMembers(selectedGuild);
+      await fetchGuilds();
+    } catch (error) {
+      setMessage(error.message);
+      await fetchMembers(selectedGuild);
+    }
+  }
+
+  async function removeMember(playerId, username) {
+    if (!window.confirm(`Remove ${username} from this guild?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/guilds/${selectedGuild.guild_id}/members`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ player_id: playerId }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to remove member");
+      }
+
+      setMessage(data.message);
+      await fetchMembers(selectedGuild);
+      await fetchGuilds();
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -72,9 +189,7 @@ export default function GuildsPage() {
     try {
       const response = await fetch(url, {
         method: editingId ? "PATCH" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
 
@@ -122,6 +237,10 @@ export default function GuildsPage() {
 
       if (!response.ok || !data.success) {
         throw new Error(data.message || "Failed to delete guild");
+      }
+
+      if (selectedGuild?.guild_id === guildId) {
+        setSelectedGuild(null);
       }
 
       setMessage(data.message);
@@ -188,10 +307,7 @@ export default function GuildsPage() {
               >
                 <option value="">Select a player</option>
                 {players.map((player) => (
-                  <option
-                    key={player.player_id}
-                    value={player.player_id}
-                  >
+                  <option key={player.player_id} value={player.player_id}>
                     {player.username} (#{player.player_id})
                   </option>
                 ))}
@@ -230,6 +346,116 @@ export default function GuildsPage() {
           </div>
         </form>
       </section>
+
+      {/* Guild Member Management */}
+      {selectedGuild && (
+        <section className="panel">
+          <div className="section-heading">
+            <div>
+              <h2>{selectedGuild.guild_name} - Members</h2>
+              <p>Manage guild membership and roles.</p>
+            </div>
+
+            <button
+              className="secondary-button"
+              onClick={() => setSelectedGuild(null)}
+            >
+              Close
+            </button>
+          </div>
+
+          <form className="filter-bar" onSubmit={addMember}>
+            <select
+              value={selectedPlayer}
+              onChange={(event) => setSelectedPlayer(event.target.value)}
+              required
+            >
+              <option value="">Select a player to add</option>
+              {availablePlayers.map((player) => (
+                <option key={player.player_id} value={player.player_id}>
+                  {player.username} (#{player.player_id})
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="submit"
+              className="primary-button"
+              disabled={!selectedPlayer}
+            >
+              Add Member
+            </button>
+          </form>
+
+          {membersLoading ? (
+            <p className="empty-state">Loading members...</p>
+          ) : members.length === 0 ? (
+            <p className="empty-state">No members found.</p>
+          ) : (
+            <div className="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Player</th>
+                    <th>Player ID</th>
+                    <th>Role</th>
+                    <th>Joined On</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {members.map((member) => (
+                    <tr key={member.player_id}>
+                      <td>{member.username}</td>
+                      <td>#{member.player_id}</td>
+                      <td>
+                        {member.guild_role === "LEADER" ? (
+                          <span className="status status-active">
+                            LEADER
+                          </span>
+                        ) : (
+                          <select
+                            value={member.guild_role}
+                            onChange={(event) =>
+                              updateMemberRole(
+                                member.player_id,
+                                event.target.value
+                              )
+                            }
+                          >
+                            <option value="MEMBER">MEMBER</option>
+                            <option value="OFFICER">OFFICER</option>
+                            <option value="LEADER">LEADER</option>
+                          </select>
+                        )}
+                      </td>
+                      <td>
+                        {new Date(member.joined_on).toLocaleDateString("en-IN")}
+                      </td>
+                      <td>
+                        {member.guild_role !== "LEADER" && (
+                          <button
+                            className="danger-button"
+                            onClick={() =>
+                              removeMember(
+                                member.player_id,
+                                member.username
+                              )
+                            }
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="panel">
         <div className="section-heading">
@@ -292,6 +518,13 @@ export default function GuildsPage() {
                           onClick={() => handleEdit(guild)}
                         >
                           Edit
+                        </button>
+
+                        <button
+                          className="secondary-button"
+                          onClick={() => fetchMembers(guild)}
+                        >
+                          Manage Members
                         </button>
 
                         <button
